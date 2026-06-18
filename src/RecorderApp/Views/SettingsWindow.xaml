@@ -1,0 +1,343 @@
+<Window x:Class="RecorderApp.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="值守录屏软件 - 设置"
+        Width="620"
+        Height="470"
+        MinWidth="580"
+        MinHeight="420"
+        WindowStartupLocation="CenterOwner">
+  <Window.Resources>
+    <Style x:Key="SettingsTabControlStyle" TargetType="TabControl">
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="TabControl">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+              </Grid.RowDefinitions>
+
+              <TabPanel Grid.Column="0"
+                        Grid.RowSpan="2"
+                        Margin="0,18,0,0"
+                        IsItemsHost="True"
+                        Background="Transparent"
+                        KeyboardNavigation.TabIndex="1" />
+
+              <TextBlock Grid.Column="2"
+                         Grid.Row="0"
+                         Margin="0,18,24,16"
+                         FontSize="21"
+                         FontWeight="Bold"
+                         Text="{Binding SelectedItem.Header, RelativeSource={RelativeSource TemplatedParent}}" />
+
+              <ContentPresenter Grid.Column="2"
+                                Grid.Row="1"
+                                Margin="0,0,24,0"
+                                ContentSource="SelectedContent" />
+            </Grid>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="SettingsTabStyle" TargetType="TabItem">
+      <Setter Property="Width" Value="150" />
+      <Setter Property="Padding" Value="18,12" />
+      <Setter Property="FontSize" Value="14" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="#374151" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="TabItem">
+            <Border x:Name="TabBorder"
+                    Margin="0,0,0,8"
+                    Padding="{TemplateBinding Padding}"
+                    Background="Transparent"
+                    CornerRadius="0">
+              <ContentPresenter HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                ContentSource="Header" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="TabBorder" Property="Background" Value="#2563EB" />
+                <Setter Property="Foreground" Value="White" />
+              </Trigger>
+              <MultiTrigger>
+                <MultiTrigger.Conditions>
+                  <Condition Property="IsMouseOver" Value="True" />
+                  <Condition Property="IsSelected" Value="False" />
+                </MultiTrigger.Conditions>
+                <Setter TargetName="TabBorder" Property="Background" Value="#DBEAFE" />
+              </MultiTrigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="SettingsPageTitleStyle" TargetType="TextBlock">
+      <Setter Property="Margin" Value="0,0,0,16" />
+      <Setter Property="FontSize" Value="21" />
+      <Setter Property="FontWeight" Value="Bold" />
+    </Style>
+
+    <Style x:Key="SettingFieldLabelStyle" TargetType="TextBlock">
+      <Setter Property="Margin" Value="0,0,0,8" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="#4B5563" />
+    </Style>
+
+    <Style x:Key="SettingHintStyle" TargetType="TextBlock">
+      <Setter Property="Margin" Value="0,8,0,0" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="{StaticResource MutedForegroundBrush}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+  </Window.Resources>
+
+  <Grid Margin="0">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="150" />
+      <ColumnDefinition Width="16" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <Border Grid.RowSpan="2" Grid.Column="0" Background="#F3F4F6" />
+
+    <TabControl Grid.Row="0"
+                Grid.ColumnSpan="3"
+                Background="Transparent"
+                BorderThickness="0"
+                Style="{StaticResource SettingsTabControlStyle}"
+                TabStripPlacement="Left">
+      <TabControl.Resources>
+        <Style TargetType="TabItem" BasedOn="{StaticResource SettingsTabStyle}" />
+      </TabControl.Resources>
+
+      <TabItem Header="基本设置">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel Margin="0,0,0,24">
+            <Border Style="{StaticResource CardBorderStyle}">
+              <StackPanel>
+                <CheckBox Content="开机自动启动" IsChecked="{Binding Settings.AutoStartWithWindows}" />
+                <CheckBox Margin="0,12,0,0" Content="程序启动后自动开始录制" IsChecked="{Binding Settings.AutoStartRecording}" />
+
+                <StackPanel Margin="0,14,0,0">
+                  <TextBlock Style="{StaticResource SettingFieldLabelStyle}" Text="录像位置" />
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Height="40" VerticalContentAlignment="Center" FontWeight="Normal" Text="{Binding Settings.StoragePath, UpdateSourceTrigger=PropertyChanged}" />
+                    <Button Grid.Column="1" Width="96" Margin="10,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding BrowseStoragePathCommand}">浏览</Button>
+                  </Grid>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="录制参数">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel Margin="0,0,0,24">
+            <Border Style="{StaticResource CardBorderStyle}">
+              <Grid>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Margin="0,0,10,14">
+                  <TextBlock Style="{StaticResource SettingFieldLabelStyle}" Text="质量" />
+                  <TextBox Height="40" VerticalContentAlignment="Center" FontWeight="Normal" Text="{Binding Settings.Quality, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Margin="10,0,0,14">
+                  <TextBlock Style="{StaticResource SettingFieldLabelStyle}" Text="帧率" />
+                  <TextBox Height="40" VerticalContentAlignment="Center" FontWeight="Normal" Text="{Binding Settings.FrameRate, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Margin="0,0,10,0">
+                  <TextBlock Style="{StaticResource SettingFieldLabelStyle}" Text="编码格式" />
+                  <ComboBox Height="40" FontWeight="Normal" ItemsSource="{Binding PreferredCodecs}" SelectedItem="{Binding Settings.PreferredCodec}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Grid.Column="1" Margin="10,0,0,0">
+                  <TextBlock Style="{StaticResource SettingFieldLabelStyle}" Text="文件格式" />
+                  <ComboBox Height="40" FontWeight="Normal" ItemsSource="{Binding Containers}" SelectedItem="{Binding Settings.Container}" />
+                </StackPanel>
+              </Grid>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="设备与环境">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel Margin="0,0,0,24">
+            <Border Style="{StaticResource CardBorderStyle}">
+              <StackPanel>
+                <StackPanel Margin="0,0,0,14">
+                  <TextBlock Style="{StaticResource SettingFieldLabelStyle}" Text="显示器" />
+                  <ComboBox Height="40" FontWeight="Normal" ItemsSource="{Binding DisplayTargets}" SelectedItem="{Binding Settings.DisplayTarget}" />
+                </StackPanel>
+
+                <StackPanel Margin="0,0,0,14">
+                  <TextBlock Style="{StaticResource SettingFieldLabelStyle}" Text="音频设备" />
+                  <ComboBox Height="40"
+                            FontWeight="Normal"
+                            ItemsSource="{Binding AudioDevices}"
+                            DisplayMemberPath="DisplayName"
+                            SelectedValuePath="InputName"
+                            SelectedValue="{Binding Settings.AudioDevice}" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                  <Button Width="148" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding RefreshAudioDevicesCommand}">刷新音频设备</Button>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="定时删除">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel Margin="0,0,0,24">
+            <Border Style="{StaticResource CardBorderStyle}">
+              <StackPanel>
+                <Grid Margin="0,0,0,14">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+
+                  <StackPanel Margin="0,0,10,0">
+                    <TextBlock Style="{StaticResource SettingFieldLabelStyle}" Text="保留天数" />
+                    <TextBox Height="40" VerticalContentAlignment="Center" FontWeight="Normal" Text="{Binding Settings.RetentionDays, UpdateSourceTrigger=PropertyChanged}" />
+                  </StackPanel>
+
+                  <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                    <TextBlock Style="{StaticResource SettingFieldLabelStyle}" Text="删除时间" />
+                    <TextBox Height="40" VerticalContentAlignment="Center" FontWeight="Normal" Text="{Binding Settings.CleanupTime, UpdateSourceTrigger=PropertyChanged}" />
+                  </StackPanel>
+                </Grid>
+
+                <StackPanel Margin="0,0,0,12">
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Height="40" VerticalContentAlignment="Center" FontWeight="Normal" Text="{Binding Settings.CleanupDirectory1, UpdateSourceTrigger=PropertyChanged}" />
+                    <Button Grid.Column="1" Width="96" Margin="10,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding BrowseCleanupDirectoryCommand}" CommandParameter="1">浏览</Button>
+                  </Grid>
+                </StackPanel>
+
+                <StackPanel Margin="0,0,0,12">
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Height="40" VerticalContentAlignment="Center" FontWeight="Normal" Text="{Binding Settings.CleanupDirectory2, UpdateSourceTrigger=PropertyChanged}" />
+                    <Button Grid.Column="1" Width="96" Margin="10,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding BrowseCleanupDirectoryCommand}" CommandParameter="2">浏览</Button>
+                  </Grid>
+                </StackPanel>
+
+                <StackPanel Margin="0,0,0,12">
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Height="40" VerticalContentAlignment="Center" FontWeight="Normal" Text="{Binding Settings.CleanupDirectory3, UpdateSourceTrigger=PropertyChanged}" />
+                    <Button Grid.Column="1" Width="96" Margin="10,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding BrowseCleanupDirectoryCommand}" CommandParameter="3">浏览</Button>
+                  </Grid>
+                </StackPanel>
+
+                <StackPanel Margin="0,0,0,12">
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Height="40" VerticalContentAlignment="Center" FontWeight="Normal" Text="{Binding Settings.CleanupDirectory4, UpdateSourceTrigger=PropertyChanged}" />
+                    <Button Grid.Column="1" Width="96" Margin="10,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding BrowseCleanupDirectoryCommand}" CommandParameter="4">浏览</Button>
+                  </Grid>
+                </StackPanel>
+
+                <StackPanel>
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Height="40" VerticalContentAlignment="Center" FontWeight="Normal" Text="{Binding Settings.CleanupDirectory5, UpdateSourceTrigger=PropertyChanged}" />
+                    <Button Grid.Column="1" Width="96" Margin="10,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding BrowseCleanupDirectoryCommand}" CommandParameter="5">浏览</Button>
+                  </Grid>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="系统与安全">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel Margin="0,0,0,24">
+            <Border Style="{StaticResource CardBorderStyle}">
+              <StackPanel>
+                <TextBlock Style="{StaticResource SettingFieldLabelStyle}" Text="修改密码" />
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+
+                  <StackPanel Margin="0,0,10,0">
+                    <TextBlock Style="{StaticResource SettingFieldLabelStyle}" Text="退出密码" />
+                    <PasswordBox x:Name="ExitPasswordBox" Height="40" FontWeight="Normal" />
+                  </StackPanel>
+
+                  <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                    <TextBlock Style="{StaticResource SettingFieldLabelStyle}" Text="确认密码" />
+                    <PasswordBox x:Name="ConfirmExitPasswordBox" Height="40" FontWeight="Normal" />
+                  </StackPanel>
+                </Grid>
+                <TextBlock Style="{StaticResource SettingHintStyle}" Text="这里同时支持设置密码和修改密码。默认不显示当前密码；当前未设置密码时，填写并保存后即启用退出密码。" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+    </TabControl>
+
+    <Grid Grid.Row="1" Grid.Column="2" Margin="0,18,24,24">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button Width="120" Margin="0,0,10,0" Style="{StaticResource GhostButtonStyle}" Click="CancelButton_Click">取消</Button>
+        <Button Width="120" IsDefault="True" Style="{StaticResource PrimaryActionButtonStyle}" Click="ConfirmButton_Click">确定</Button>
+      </StackPanel>
+    </Grid>
+  </Grid>
+</Window>

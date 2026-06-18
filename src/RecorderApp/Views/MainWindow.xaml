@@ -1,0 +1,180 @@
+﻿<Window x:Class="RecorderApp.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="值守录屏软件"
+        Width="980"
+        Height="420"
+        MinWidth="860"
+        MinHeight="380"
+        WindowStartupLocation="CenterScreen">
+  <Window.Resources>
+    <Style x:Key="CardActionButtonStyle" TargetType="Button">
+      <Setter Property="Background" Value="#FFFFFF" />
+      <Setter Property="BorderBrush" Value="#E2E8F0" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Stretch" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="18"
+                    SnapsToDevicePixels="True">
+              <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <Trigger Property="IsMouseOver" Value="True">
+          <Setter Property="Background" Value="#F3F4F6" />
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="HoverCardBorderStyle" TargetType="Border" BasedOn="{StaticResource CardBorderStyle}">
+      <Style.Triggers>
+        <Trigger Property="IsMouseOver" Value="True">
+          <Setter Property="Background" Value="#F3F4F6" />
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+  </Window.Resources>
+  <Grid Margin="24">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <Border Panel.ZIndex="5"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            Padding="20,12"
+            Background="#1F2937"
+            CornerRadius="16"
+            Visibility="{Binding IsStopping, Converter={StaticResource BoolToVisibilityConverter}}">
+      <TextBlock Foreground="White" FontSize="14" FontWeight="SemiBold" Text="正在停止录屏..." />
+    </Border>
+
+    <Grid Grid.Row="0" Margin="0,0,0,24">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+
+      <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+        <Button Width="120" Margin="0,0,12,0" Style="{StaticResource GhostButtonStyle}" Click="SettingsButton_Click">设置</Button>
+        <Button Width="140" Style="{StaticResource GhostButtonStyle}" Command="{Binding OpenRecordFolderCommand}">录像文件夹</Button>
+      </StackPanel>
+    </Grid>
+
+    <Grid Grid.Row="1">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <Border Grid.Column="0" Margin="0,0,12,0" Height="260" Background="Transparent" BorderThickness="0">
+        <Button Style="{StaticResource CardActionButtonStyle}"
+                Command="{Binding StartRecordingCommand}">
+          <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="20" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       FontSize="22"
+                       FontWeight="SemiBold"
+                       Visibility="Hidden"
+                       Text="C:" />
+            <Viewbox Grid.Row="1" Width="96" Height="96">
+              <Canvas Width="1024" Height="1024">
+                <Path Fill="#2AA515"
+                      Data="M510.9 60.7c-245.6 0-446.7 199.8-446.7 446.7C64.2 753 263.9 954 510.8 954s446.6-199.7 446.6-446.6c0.1-245.6-199.6-446.7-446.5-446.7zM692 525.9l-272.1 157c-10.7 6.2-24-1.5-24-13.9V354.9c0-12.3 13.3-20 24-13.9L692 498.1c10.6 6.2 10.6 21.6 0 27.8z"
+                      Visibility="{Binding IsRecording, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                <Grid Visibility="{Binding IsRecording, Converter={StaticResource BoolToVisibilityConverter}}">
+                  <Path x:Name="RecordingRedIcon"
+                        Fill="#D81E06"
+                        Data="M512 130c51.6 0 101.62 10.09 148.67 29.99 45.48 19.24 86.34 46.79 121.44 81.89s62.66 75.96 81.89 121.44c19.91 47.06 30 97.08 30 148.68s-10.09 101.62-29.99 148.67c-19.24 45.48-46.79 86.34-81.89 121.44S706.16 844.77 660.68 864c-47.06 19.91-97.08 30-148.68 30s-101.62-10.09-148.67-29.99c-45.48-19.24-86.34-46.79-121.44-81.89S179.23 706.16 160 660.68c-19.91-47.06-30-97.08-30-148.68s10.09-101.62 29.99-148.67c19.24-45.48 46.79-86.34 81.89-121.44s75.96-62.66 121.44-81.89c47.06-19.91 97.08-30 148.68-30m0-64C265.68 66 66 265.68 66 512s199.68 446 446 446 446-199.68 446-446S758.32 66 512 66z" />
+                  <Path x:Name="RecordingRedCenter"
+                        Fill="#D81E06"
+                        Data="M512 512m-249 0a249 249 0 1 0 498 0 249 249 0 1 0-498 0Z" />
+                  <Path x:Name="RecordingGrayIcon"
+                        Visibility="Collapsed"
+                        Fill="#BFBFBF"
+                        Data="M512 130c51.6 0 101.62 10.09 148.67 29.99 45.48 19.24 86.34 46.79 121.44 81.89s62.66 75.96 81.89 121.44c19.91 47.06 30 97.08 30 148.68s-10.09 101.62-29.99 148.67c-19.24 45.48-46.79 86.34-81.89 121.44S706.16 844.77 660.68 864c-47.06 19.91-97.08 30-148.68 30s-101.62-10.09-148.67-29.99c-45.48-19.24-86.34-46.79-121.44-81.89S179.23 706.16 160 660.68c-19.91-47.06-30-97.08-30-148.68s10.09-101.62 29.99-148.67c19.24-45.48 46.79-86.34 81.89-121.44s75.96-62.66 121.44-81.89c47.06-19.91 97.08-30 148.68-30m0-64C265.68 66 66 265.68 66 512s199.68 446 446 446 446-199.68 446-446S758.32 66 512 66z" />
+                  <Path x:Name="RecordingGrayCenter"
+                        Visibility="Collapsed"
+                        Fill="#BFBFBF"
+                        Data="M512 512m-249 0a249 249 0 1 0 498 0 249 249 0 1 0-498 0Z" />
+                </Grid>
+              </Canvas>
+            </Viewbox>
+            <TextBlock Grid.Row="2" Margin="0,18,0,0" FontSize="22" FontWeight="SemiBold" Text="{Binding StartCardTitle}" />
+          </Grid>
+        </Button>
+      </Border>
+
+      <Border Grid.Column="1" Margin="6,0,6,0" Height="260" Background="Transparent" BorderThickness="0">
+        <Button Style="{StaticResource CardActionButtonStyle}"
+                Command="{Binding StopRecordingCommand}">
+          <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="20" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       FontSize="22"
+                       FontWeight="SemiBold"
+                       Visibility="Hidden"
+                       Text="C:" />
+            <Viewbox Grid.Row="1" Width="96" Height="96">
+              <Canvas Width="1024" Height="1024">
+                <Path Fill="#BFBFBF" Data="M512 42.666667C252.793333 42.666667 42.666667 252.793333 42.666667 512s210.126667 469.333333 469.333333 469.333333 469.333333-210.126667 469.333333-469.333333S771.206667 42.666667 512 42.666667z m213.333333 645.333333a37.373333 37.373333 0 0 1-37.333333 37.333333H336a37.373333 37.373333 0 0 1-37.333333-37.333333V336a37.373333 37.373333 0 0 1 37.333333-37.333333h352a37.373333 37.373333 0 0 1 37.333333 37.333333z" />
+              </Canvas>
+            </Viewbox>
+            <TextBlock Grid.Row="2" Margin="0,18,0,0" FontSize="22" FontWeight="SemiBold" Text="停止录屏" />
+          </Grid>
+        </Button>
+      </Border>
+
+      <Border Grid.Column="2" Margin="12,0,0,0" Style="{StaticResource HoverCardBorderStyle}" Height="260">
+        <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="20" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+          <TextBlock Grid.Row="0"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center"
+                     TextAlignment="Center"
+                     Width="96"
+                     FontSize="22"
+                     FontWeight="SemiBold"
+                     Text="{Binding DiskDriveName}" />
+          <Viewbox Grid.Row="1" Width="96" Height="96">
+            <Canvas Width="1024" Height="1024">
+              <Path Fill="#FFDBB2" Data="M915.6352 186.0352c-9.3952-25.0368-31.3088-43.8016-59.4688-43.8016H170.9568c-28.16 0-53.1968 18.7648-62.592 46.9248L20.7616 548.9664H1003.264L915.6352 186.0352zM11.3664 611.5584v219.008c0 34.432 28.16 62.592 62.592 62.592H950.016c34.432 0 62.592-28.16 62.592-62.592V611.584H11.3664z" />
+              <Path Fill="#FF8A00" Data="M915.9168 807.8336h-204.8a25.6 25.6 0 0 1-25.6-25.6v-51.2a25.6 25.6 0 0 1 25.6-25.6h204.8a25.6 25.6 0 0 1 25.6 25.6v51.2a25.6 25.6 0 0 1-25.6 25.6z" />
+            </Canvas>
+          </Viewbox>
+          <TextBlock Grid.Row="2" Margin="0,18,0,0" FontSize="24" FontWeight="SemiBold" Text="{Binding DiskCapacitySummary}" />
+        </Grid>
+      </Border>
+    </Grid>
+  </Grid>
+</Window>
