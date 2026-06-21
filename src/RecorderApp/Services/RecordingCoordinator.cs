@@ -18,6 +18,8 @@ public sealed class RecordingCoordinator
     private Process? _activeProcess;
     private AudioLoopbackCaptureSession? _activeAudioSession;
     private volatile bool _stopRequested;
+    private readonly object _pendingSettingsLock = new();
+    private RecorderSettings? _pendingSettings;
 
     public RecordingCoordinator(
         JsonSettingsStore settingsStore,
@@ -113,6 +115,22 @@ public sealed class RecordingCoordinator
         PublishStatus("Stopped", "Recording stopped.", string.Empty, string.Empty, string.Empty);
     }
 
+    public bool QueueSettingsApplyAfterCurrentSegment(RecorderSettings settings)
+    {
+        if (!IsRunning)
+        {
+            return false;
+        }
+
+        lock (_pendingSettingsLock)
+        {
+            _pendingSettings = settings.Clone();
+        }
+
+        _logger.Info("Queued settings update. Changes will apply after the current segment ends.");
+        return true;
+    }
+
     private async Task RunAsync(RecorderSettings settings, CancellationToken cancellationToken)
     {
         try
@@ -136,13 +154,26 @@ public sealed class RecordingCoordinator
                     activeWindow = _segmentPlanner.GetCurrentWindow(DateTime.Now, activeWindow);
                     try
                     {
-                        var diskStatus = await RecordSegmentAsync(ffmpegPath, settings, activeWindow.Value, cancellationToken);
+                        var completedOutputPath = await RecordSegmentAsync(ffmpegPath, settings, activeWindow.Value, cancellationToken);
                         if (DateTime.Now >= activeWindow.Value.End.AddSeconds(-1))
                         {
                             activeWindow = null;
                         }
 
-                        PublishStatus("Waiting", "Preparing next segment.", string.Empty, string.Empty, diskStatus);
+                        var appliedPendingSettings = ConsumePendingSettings();
+                        if (appliedPendingSettings is not null)
+                        {
+                            settings = appliedPendingSettings;
+                            AppPaths.EnsureDirectories(settings.StoragePath);
+                            _logger.Info($"Applied queued settings. Storage path: {settings.StoragePath}");
+                        }
+
+                        var maintenancePath = appliedPendingSettings is null ? completedOutputPath : null;
+                        var diskStatus = await _cleanupService.RunMaintenanceAsync(settings, maintenancePath, cancellationToken);
+                        var waitingMessage = appliedPendingSettings is null
+                            ? "Preparing next segment."
+                            : "设置已更新，将从下一片段开始自动应用。";
+                        PublishStatus("Waiting", waitingMessage, string.Empty, string.Empty, diskStatus);
                     }
                     catch (OperationCanceledException)
                     {
@@ -260,7 +291,7 @@ public sealed class RecordingCoordinator
             await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
         }
 
-        return await _cleanupService.RunMaintenanceAsync(settings, outputPath, cancellationToken);
+        return outputPath;
     }
 
     private async Task WriteHeartbeatLoopAsync(string outputPath, string? audioPath, CancellationToken cancellationToken)
@@ -354,6 +385,16 @@ public sealed class RecordingCoordinator
         }
         catch (OperationCanceledException)
         {
+        }
+    }
+
+    private RecorderSettings? ConsumePendingSettings()
+    {
+        lock (_pendingSettingsLock)
+        {
+            var settings = _pendingSettings;
+            _pendingSettings = null;
+            return settings;
         }
     }
 

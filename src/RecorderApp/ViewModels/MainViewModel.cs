@@ -26,6 +26,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly AudioDeviceService _audioDeviceService;
     private readonly FFmpegBootstrapper _ffmpegBootstrapper;
     private readonly FileLogger _logger;
+    private RecorderSettings _lastPersistedSettingsSnapshot;
     private string _statusText = "Idle";
     private string _currentFile = string.Empty;
     private string _lastMessage = string.Empty;
@@ -48,6 +49,7 @@ public sealed class MainViewModel : ObservableObject
         FileLogger logger)
     {
         Settings = settings;
+        _lastPersistedSettingsSnapshot = settings.Clone();
         _settingsStore = settingsStore;
         _startupRegistrationService = startupRegistrationService;
         _recordingCoordinator = recordingCoordinator;
@@ -381,14 +383,22 @@ public sealed class MainViewModel : ObservableObject
             return false;
         }
 
+        var shouldApplyAfterCurrentSegment = IsRecording
+            && HaveRecordingRuntimeSettingsChanged(_lastPersistedSettingsSnapshot, Settings);
         AppPaths.EnsureDirectories(Settings.StoragePath);
         _settingsStore.Save(Settings);
         _startupRegistrationService.Apply(Settings.AutoStartWithWindows);
+        var queuedForDeferredApply = shouldApplyAfterCurrentSegment
+            && _recordingCoordinator.QueueSettingsApplyAfterCurrentSegment(Settings);
+        _lastPersistedSettingsSnapshot = Settings.Clone();
         _logger.Info("Settings saved.");
 
         if (showSuccessMessage)
         {
-            WpfMessageBox.Show("设置已保存。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            var message = queuedForDeferredApply
+                ? "设置已保存，将在当前片段结束后自动应用。"
+                : "设置已保存。";
+            WpfMessageBox.Show(message, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         RefreshDiskMetrics();
@@ -781,6 +791,24 @@ public sealed class MainViewModel : ObservableObject
         {
             return string.Empty;
         }
+    }
+
+    private static bool HaveRecordingRuntimeSettingsChanged(RecorderSettings previous, RecorderSettings current)
+    {
+        return !string.Equals(NormalizePath(previous.StoragePath), NormalizePath(current.StoragePath), StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(previous.PreferredCodec, current.PreferredCodec, StringComparison.Ordinal)
+            || !string.Equals(previous.Container, current.Container, StringComparison.Ordinal)
+            || !string.Equals(previous.AudioDevice, current.AudioDevice, StringComparison.Ordinal)
+            || !string.Equals(previous.DisplayTarget, current.DisplayTarget, StringComparison.Ordinal)
+            || previous.Quality != current.Quality
+            || previous.FrameRate != current.FrameRate
+            || previous.RetentionDays != current.RetentionDays
+            || !string.Equals(previous.CleanupTime, current.CleanupTime, StringComparison.Ordinal)
+            || !string.Equals(NormalizePath(previous.CleanupDirectory1), NormalizePath(current.CleanupDirectory1), StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(NormalizePath(previous.CleanupDirectory2), NormalizePath(current.CleanupDirectory2), StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(NormalizePath(previous.CleanupDirectory3), NormalizePath(current.CleanupDirectory3), StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(NormalizePath(previous.CleanupDirectory4), NormalizePath(current.CleanupDirectory4), StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(NormalizePath(previous.CleanupDirectory5), NormalizePath(current.CleanupDirectory5), StringComparison.OrdinalIgnoreCase);
     }
 
     private static string FormatFileSize(long bytes)

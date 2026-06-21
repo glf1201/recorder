@@ -237,16 +237,6 @@ public sealed class CleanupService
 
     private static bool IsExpiredAdditionalDirectory(DirectoryInfo directory, DateTime cutoff)
     {
-        if (DateTime.TryParseExact(
-                directory.Name,
-                "yyyy-MM-dd",
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.None,
-                out var folderDate))
-        {
-            return folderDate.Date < cutoff.Date;
-        }
-
         return directory.CreationTime.Date < cutoff.Date;
     }
 
