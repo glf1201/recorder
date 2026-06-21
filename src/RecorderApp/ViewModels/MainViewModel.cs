@@ -317,7 +317,7 @@ public sealed class MainViewModel : ObservableObject
             IsStopping = true;
             try
             {
-                await _recordingCoordinator.StopAsync("application-exit");
+                await _recordingCoordinator.StopAsync("application-exit", terminateFfmpegProcess: true);
                 IsRecording = false;
                 RefreshDashboard();
                 RefreshDiskMetrics();
@@ -336,7 +336,7 @@ public sealed class MainViewModel : ObservableObject
             IsStopping = true;
             try
             {
-                await _recordingCoordinator.StopAsync("windows-session-ending");
+                await _recordingCoordinator.StopAsync("windows-session-ending", terminateFfmpegProcess: true);
                 IsRecording = false;
                 RefreshDashboard();
                 RefreshDiskMetrics();
@@ -350,7 +350,7 @@ public sealed class MainViewModel : ObservableObject
 
     public bool VerifyExitPassword(string password)
     {
-        return string.Equals(Settings.ExitPassword ?? string.Empty, password ?? string.Empty, StringComparison.Ordinal);
+        return _settingsStore.VerifyExitPassword(Settings.ExitPassword, password);
     }
 
     public bool TrySaveSettingsForDialog(out string error)
@@ -383,10 +383,17 @@ public sealed class MainViewModel : ObservableObject
             return false;
         }
 
+        var cleanupSettingsChanged = HaveCleanupSettingsChanged(_lastPersistedSettingsSnapshot, Settings);
         var shouldApplyAfterCurrentSegment = IsRecording
             && HaveRecordingRuntimeSettingsChanged(_lastPersistedSettingsSnapshot, Settings);
+        Settings.ExitPassword = _settingsStore.ProtectExitPassword(Settings.ExitPassword);
         AppPaths.EnsureDirectories(Settings.StoragePath);
         _settingsStore.Save(Settings);
+        if (cleanupSettingsChanged)
+        {
+            _settingsStore.ClearLastCleanupDate();
+            _logger.Info("Cleanup settings changed. Cleared last cleanup date so the new rule can run today.");
+        }
         _startupRegistrationService.Apply(Settings.AutoStartWithWindows);
         var queuedForDeferredApply = shouldApplyAfterCurrentSegment
             && _recordingCoordinator.QueueSettingsApplyAfterCurrentSegment(Settings);
@@ -802,6 +809,18 @@ public sealed class MainViewModel : ObservableObject
             || !string.Equals(previous.DisplayTarget, current.DisplayTarget, StringComparison.Ordinal)
             || previous.Quality != current.Quality
             || previous.FrameRate != current.FrameRate
+            || previous.RetentionDays != current.RetentionDays
+            || !string.Equals(previous.CleanupTime, current.CleanupTime, StringComparison.Ordinal)
+            || !string.Equals(NormalizePath(previous.CleanupDirectory1), NormalizePath(current.CleanupDirectory1), StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(NormalizePath(previous.CleanupDirectory2), NormalizePath(current.CleanupDirectory2), StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(NormalizePath(previous.CleanupDirectory3), NormalizePath(current.CleanupDirectory3), StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(NormalizePath(previous.CleanupDirectory4), NormalizePath(current.CleanupDirectory4), StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(NormalizePath(previous.CleanupDirectory5), NormalizePath(current.CleanupDirectory5), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool HaveCleanupSettingsChanged(RecorderSettings previous, RecorderSettings current)
+    {
+        return !string.Equals(NormalizePath(previous.StoragePath), NormalizePath(current.StoragePath), StringComparison.OrdinalIgnoreCase)
             || previous.RetentionDays != current.RetentionDays
             || !string.Equals(previous.CleanupTime, current.CleanupTime, StringComparison.Ordinal)
             || !string.Equals(NormalizePath(previous.CleanupDirectory1), NormalizePath(current.CleanupDirectory1), StringComparison.OrdinalIgnoreCase)

@@ -6,14 +6,13 @@ Windows unattended screen recording tool built with `C#`, `.NET 8`, `WPF`, and `
 
 ## Overview
 
-This project is designed for long-running desktop recording on Windows. It supports segmented recording, tray mode, auto-start, watchdog recovery, scheduled cleanup, and system-audio capture.
+This project is designed for long-running desktop recording on Windows. It supports segmented recording, tray mode, auto-start, scheduled cleanup, and system-audio capture.
 
 ## Features
 
 - Automatic segmented recording every 10 minutes
 - Uses WASAPI loopback to capture system audio and merge it into FFmpeg recording
-- Supports auto-start with Windows and tray-only startup
-- Includes `WatchDog` to restart the recorder if the main process exits unexpectedly
+- Supports auto-start with Windows and can stay minimized in the tray
 - Supports recording format, storage path, display target, and audio device configuration
 - Supports scheduled cleanup for recording folders and up to 5 additional cleanup directories
 - Supports exit password, single-instance activation, recent logs, and recent recordings
@@ -36,7 +35,6 @@ This project is designed for long-running desktop recording on Windows. It suppo
 ## Project Structure
 
 - `src/RecorderApp`: Main desktop recorder application
-- `src/WatchDog`: Watchdog process
 - `images`: Application icons and UI assets
 - `Tools/ffmpeg/bin/ffmpeg.exe`: Recommended FFmpeg location
 

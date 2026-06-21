@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -6,8 +6,6 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{32078DCA-9B10-4E6E-A317-1447C9C5477C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecorderApp", "src\RecorderApp\RecorderApp.csproj", "{15E687CD-E1C7-44D8-9F30-32035D4EBF61}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WatchDog", "src\WatchDog\WatchDog.csproj", "{4932B6C3-C99F-4B95-9FAC-E354732D70AC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -22,13 +20,8 @@ Global
 		{15E687CD-E1C7-44D8-9F30-32035D4EBF61}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{15E687CD-E1C7-44D8-9F30-32035D4EBF61}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{15E687CD-E1C7-44D8-9F30-32035D4EBF61}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4932B6C3-C99F-4B95-9FAC-E354732D70AC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4932B6C3-C99F-4B95-9FAC-E354732D70AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4932B6C3-C99F-4B95-9FAC-E354732D70AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4932B6C3-C99F-4B95-9FAC-E354732D70AC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{15E687CD-E1C7-44D8-9F30-32035D4EBF61} = {32078DCA-9B10-4E6E-A317-1447C9C5477C}
-		{4932B6C3-C99F-4B95-9FAC-E354732D70AC} = {32078DCA-9B10-4E6E-A317-1447C9C5477C}
 	EndGlobalSection
 EndGlobal

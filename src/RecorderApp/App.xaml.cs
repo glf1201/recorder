@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using RecorderApp.Models;
 using RecorderApp.Services;
 using RecorderApp.ViewModels;
@@ -25,7 +24,6 @@ public partial class App : System.Windows.Application
         base.OnStartup(e);
 
         var startHiddenInTray = e.Args.Any(arg => string.Equals(arg, TrayStartupArgument, StringComparison.OrdinalIgnoreCase));
-        EnsureWatchDogRunning();
 
         _singleInstanceMutex = new Mutex(true, SingleInstanceMutexName, out var createdNew);
         if (!createdNew)
@@ -59,7 +57,7 @@ public partial class App : System.Windows.Application
             AppPaths.EnsureDirectories(settings.StoragePath);
 
             var startupRegistrationService = new StartupRegistrationService();
-            startupRegistrationService.Apply(settings.AutoStartWithWindows, stopRunningWatchDogWhenDisabled: false);
+            startupRegistrationService.Apply(settings.AutoStartWithWindows);
             var ffmpegLocator = new FFmpegLocator();
             var ffmpegBootstrapper = new FFmpegBootstrapper(ffmpegLocator, _logger);
             var bootstrapResult = await ffmpegBootstrapper.EnsureAvailableAsync(CancellationToken.None);
@@ -121,9 +119,16 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        if (_mainViewModel is not null)
+        try
         {
-            _mainViewModel.StopForApplicationExitAsync().GetAwaiter().GetResult();
+            if (_mainViewModel is not null)
+            {
+                _mainViewModel.StopForApplicationExitAsync().GetAwaiter().GetResult();
+            }
+        }
+        finally
+        {
+            _recordingCoordinator?.EnsureFfmpegProcessTerminated("application-exit-finalize");
         }
 
         _logger?.Info("Application exited.");
@@ -197,44 +202,4 @@ public partial class App : System.Windows.Application
         }
     }
 
-    private static void EnsureWatchDogRunning()
-    {
-        try
-        {
-            var baseDirectory = AppContext.BaseDirectory;
-            var watchDogPath = Path.Combine(baseDirectory, "WatchDog.exe");
-            var mainExecutablePath = Environment.ProcessPath;
-            if (string.IsNullOrWhiteSpace(mainExecutablePath) || !File.Exists(watchDogPath))
-            {
-                return;
-            }
-
-            var watchDogProcesses = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(watchDogPath));
-            foreach (var process in watchDogProcesses)
-            {
-                try
-                {
-                    var processPath = process.MainModule?.FileName;
-                    if (string.Equals(processPath, watchDogPath, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return;
-                    }
-                }
-                catch
-                {
-                }
-            }
-
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = watchDogPath,
-                Arguments = $"\"{mainExecutablePath}\"",
-                UseShellExecute = true,
-                WorkingDirectory = baseDirectory,
-            });
-        }
-        catch
-        {
-        }
-    }
 }

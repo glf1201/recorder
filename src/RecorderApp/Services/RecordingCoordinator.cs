@@ -62,7 +62,7 @@ public sealed class RecordingCoordinator
         return Task.CompletedTask;
     }
 
-    public async Task StopAsync(string reason = "Manual stop")
+    public async Task StopAsync(string reason = "Manual stop", bool terminateFfmpegProcess = false)
     {
         if (_cancellationTokenSource is null)
         {
@@ -78,12 +78,19 @@ public sealed class RecordingCoordinator
             await activeAudioSession.StopAsync();
         }
         RequestActiveProcessStop();
+        if (terminateFfmpegProcess)
+        {
+            _logger.Info($"Application is exiting. Forcing ffmpeg process termination. Reason: {reason}");
+            _cancellationTokenSource.Cancel();
+            TryKillActiveProcess();
+        }
 
         if (_workerTask is not null)
         {
             try
             {
-                var completedTask = await Task.WhenAny(_workerTask, Task.Delay(TimeSpan.FromSeconds(20)));
+                var stopTimeout = terminateFfmpegProcess ? TimeSpan.FromSeconds(5) : TimeSpan.FromSeconds(20);
+                var completedTask = await Task.WhenAny(_workerTask, Task.Delay(stopTimeout));
                 if (completedTask != _workerTask)
                 {
                     _logger.Warn("Graceful stop timed out. Force-stopping ffmpeg.");
@@ -113,6 +120,12 @@ public sealed class RecordingCoordinator
         _cancellationTokenSource = null;
         _workerTask = null;
         PublishStatus("Stopped", "Recording stopped.", string.Empty, string.Empty, string.Empty);
+    }
+
+    public void EnsureFfmpegProcessTerminated(string reason)
+    {
+        _logger.Info($"Ensuring ffmpeg process is terminated. Reason: {reason}");
+        TryKillActiveProcess();
     }
 
     public bool QueueSettingsApplyAfterCurrentSegment(RecorderSettings settings)

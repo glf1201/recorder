@@ -20,8 +20,9 @@ public sealed class CleanupService
     {
         if (ShouldCompensateScheduledCleanup(settings, DateTime.Now))
         {
+            _logger.Info($"Running startup-compensated cleanup. Storage path: {settings.StoragePath}; cleanup time: {settings.CleanupTime}; retention days: {settings.RetentionDays}");
             await DeleteExpiredFilesAsync(settings, activeRecordingPath, cancellationToken);
-            _settingsStore.SaveLastCleanupDate(DateOnly.FromDateTime(DateTime.Now));
+            _settingsStore.SaveLastCleanupState(DateOnly.FromDateTime(DateTime.Now), BuildCleanupSignature(settings));
         }
 
         EnforceDiskProtection(settings.StoragePath, activeRecordingPath);
@@ -30,13 +31,17 @@ public sealed class CleanupService
     public async Task<string> RunMaintenanceAsync(RecorderSettings settings, string? activeRecordingPath, CancellationToken cancellationToken)
     {
         var now = DateTime.Now;
-        var lastCleanupDate = _settingsStore.LoadLastCleanupDate();
+        var currentSignature = BuildCleanupSignature(settings);
+        var lastCleanupState = _settingsStore.LoadLastCleanupState();
+        var lastCleanupDate = lastCleanupState.Date;
         if (TryParseCleanupTime(settings.CleanupTime, out var cleanupTime)
             && now.TimeOfDay >= cleanupTime
-            && lastCleanupDate != DateOnly.FromDateTime(now))
+            && (lastCleanupDate != DateOnly.FromDateTime(now)
+                || !string.Equals(lastCleanupState.Signature, currentSignature, StringComparison.Ordinal)))
         {
+            _logger.Info($"Running scheduled cleanup. Storage path: {settings.StoragePath}; cleanup time: {settings.CleanupTime}; retention days: {settings.RetentionDays}; last cleanup date: {(lastCleanupDate.HasValue ? lastCleanupDate.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : "none")}; previous cleanup signature matched current: {string.Equals(lastCleanupState.Signature, currentSignature, StringComparison.Ordinal)}");
             await DeleteExpiredFilesAsync(settings, activeRecordingPath, cancellationToken);
-            _settingsStore.SaveLastCleanupDate(DateOnly.FromDateTime(now));
+            _settingsStore.SaveLastCleanupState(DateOnly.FromDateTime(now), currentSignature);
         }
 
         var diskStatus = EnforceDiskProtection(settings.StoragePath, activeRecordingPath);
@@ -50,10 +55,13 @@ public sealed class CleanupService
             return false;
         }
 
-        var lastCleanupDate = _settingsStore.LoadLastCleanupDate();
+        var currentSignature = BuildCleanupSignature(settings);
+        var lastCleanupState = _settingsStore.LoadLastCleanupState();
+        var lastCleanupDate = lastCleanupState.Date;
         return now - _startupTime <= TimeSpan.FromMinutes(10)
             && now.TimeOfDay >= cleanupTime
-            && lastCleanupDate != DateOnly.FromDateTime(now);
+            && (lastCleanupDate != DateOnly.FromDateTime(now)
+                || !string.Equals(lastCleanupState.Signature, currentSignature, StringComparison.Ordinal));
     }
 
     private async Task DeleteExpiredFilesAsync(RecorderSettings settings, string? activeRecordingPath, CancellationToken cancellationToken)
@@ -87,6 +95,7 @@ public sealed class CleanupService
     {
         if (!Directory.Exists(root))
         {
+            _logger.Info($"Cleanup skipped for recording directory because it does not exist: {root}");
             return;
         }
 
@@ -95,6 +104,8 @@ public sealed class CleanupService
             .Where(directory => IsExpiredRecordingDirectory(directory, cutoff))
             .OrderBy(directory => directory.Name)
             .ToList();
+
+        _logger.Info($"Recording directory cleanup scan finished. Root: {root}; expired first-level directories: {expiredDirectories.Count}; cutoff date: {cutoff:yyyy-MM-dd}");
 
         var processedCount = 0;
         foreach (var directory in expiredDirectories)
@@ -121,6 +132,10 @@ public sealed class CleanupService
     {
         if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root))
         {
+            if (!string.IsNullOrWhiteSpace(root))
+            {
+                _logger.Info($"Cleanup skipped for additional directory because it does not exist: {root}");
+            }
             return;
         }
 
@@ -129,6 +144,8 @@ public sealed class CleanupService
             .Where(directory => IsExpiredAdditionalDirectory(directory, cutoff))
             .OrderBy(directory => directory.Name)
             .ToList();
+
+        _logger.Info($"Additional directory cleanup scan finished. Root: {root}; expired first-level directories: {expiredDirectories.Count}; cutoff date: {cutoff:yyyy-MM-dd}");
 
         var processedCount = 0;
         foreach (var directory in expiredDirectories)
@@ -188,6 +205,21 @@ public sealed class CleanupService
         return TimeSpan.TryParseExact(value, @"hh\:mm", CultureInfo.InvariantCulture, out time);
     }
 
+    private static string BuildCleanupSignature(RecorderSettings settings)
+    {
+        return string.Join("|", new[]
+        {
+            NormalizePath(settings.StoragePath),
+            settings.RetentionDays.ToString(CultureInfo.InvariantCulture),
+            settings.CleanupTime ?? string.Empty,
+            NormalizePath(settings.CleanupDirectory1),
+            NormalizePath(settings.CleanupDirectory2),
+            NormalizePath(settings.CleanupDirectory3),
+            NormalizePath(settings.CleanupDirectory4),
+            NormalizePath(settings.CleanupDirectory5),
+        });
+    }
+
     private static bool HasVideoExtension(string path)
     {
         var extension = Path.GetExtension(path);
@@ -226,13 +258,7 @@ public sealed class CleanupService
 
     private static bool IsExpiredRecordingDirectory(DirectoryInfo directory, DateTime cutoff)
     {
-        return DateTime.TryParseExact(
-                directory.Name,
-                "yyyy-MM-dd",
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.None,
-                out var folderDate)
-            && folderDate.Date < cutoff.Date;
+        return directory.CreationTime.Date < cutoff.Date;
     }
 
     private static bool IsExpiredAdditionalDirectory(DirectoryInfo directory, DateTime cutoff)
